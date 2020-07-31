@@ -2,7 +2,7 @@
 This repository is mostly based on the example by Urmade (https://github.com/Urmade/TeamsTabSSO) and implement a reverse proxy to a php based application, with SSO authentication.
 
 It was designed as a test to publish an internal app for our salesforce calling a pre-existing intranet (with slight modifications, but still avoinding re-writing the entire software stack in NodeJS). 
-It supports https, sessions (memorystore), pug engine
+It supports https and sessions (memorystore).
 
 This sends the php App session data (user oid in azure, theme, client type, ...) as well as a scope variable (in this case, the customer ID), the current page (iTab) and any values from forms or url params (GET only) so they can be validated php-side.
 
