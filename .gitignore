@@ -2,3 +2,4 @@ dest
 node_modules
 package-lock.json
 .env
+www/public/logo2013.png
