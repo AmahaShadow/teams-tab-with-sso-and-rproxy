@@ -1,0 +1,12 @@
+html
+  head
+    meta(charset='utf-8')
+    script(src='https://statics.teams.microsoft.com/sdk/v1.7.0/js/MicrosoftTeams.min.js')
+    link(rel='stylesheet', href='public/main.css?v=20200923')
+    title= title
+  body
+    script.
+        microsoftTeams.initialize(); 
+        setTimeout(function(){window.location.reload(1);}, 3000);
+    h1 Veuillez patienter, authentification en cours
+    span= pageCount
