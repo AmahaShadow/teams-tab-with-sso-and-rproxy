@@ -31,14 +31,30 @@ app.use('/public', express_1.default.static(path_1.default.join(__dirname, 'publ
 //reverse proxy to a php server with basic session control and GET redirect => POST
 //http/post are apparently not supported by Teams, so forms need to be send with method=get
 app.get("/tab", function (req, res) {
-    if ((req.session.data === undefined) || (req.session.data['user'] === undefined)) {
-        console.log("Call /tab by unidentified endpoint");
+    if (req.session.data === undefined) {
+        console.log("Call /tab by unidentified endpoint (IP=" + req.connection.remoteAddress + ", Session undef)");
+        req.session.data = { "ctl_sess": "false", "pageCount": -1, "scope": "undefined" };
         res.render("user_not_recognized");
         return;
     }
-    var iTab = (req.query.iTab || -1);
     req.session.data['pageCount'] = (req.session.data['pageCount'] || 0) + 1;
-    console.log("Call /tab (" + iTab + ") by " + req.session.data['user'].oid + " [pC=" + req.session.data['pageCount'] + "]");
+    if ((req.session.data['pageCount'] > 5) && (req.session.data['ctl_sess'] == "false")) {
+        //something went wrong, we reload everything
+        console.log("Call /tab by unidentified endpoint (IP=" + req.connection.remoteAddress + ", Session reset, counter)");
+        req.session.data = { "ctl_sess": "false", "pageCount": -1, "scope": "undefined" };
+        res.render("user_not_recognized");
+        return;
+    }
+    if (req.session.data['user'] === undefined) {
+        console.log("Call /tab by unidentified endpoint (IP=" + req.connection.remoteAddress + ", pC=" + (req.session.data['pageCount'] || 0) + ")");
+        res.render("auth_in_progress", { pageCount: req.session.data['pageCount'] });
+        return;
+    }
+    var iTab = (req.query.iTab || -1);
+    var iScope = (req.query.iScope || "null");
+    if (iScope != "null")
+        req.session.data['scope'] = iScope;
+    console.log("Call /tab (" + iTab + ") by " + req.session.data['user'].oid + " [pC=" + req.session.data['pageCount'] + "], Scope=" + req.session.data['scope']);
     var buf1 = JSON.stringify(req.query);
     var buf2 = JSON.stringify({});
     if ((req.session.context === undefined) || (req.session.context['theme'] === undefined)) {
@@ -53,6 +69,7 @@ app.get("/tab", function (req, res) {
         },
         "form": {
             "itab": iTab,
+            "scope": req.session.data['scope'],
             "user_id": req.session.data['user'].oid,
             "client_secret": process.env.API_SECRET,
             "context": buf2,
@@ -68,11 +85,40 @@ app.get("/tab", function (req, res) {
         res.render("tab", { title: 'Hey', message: body, pageCount: req.session.data['pageCount'] });
     });
 });
+app.get("/ajax", function (req, res) {
+    if ((req.session.data === undefined) || (req.session.data['user'] === undefined)) {
+        console.log("Call /ajax by unidentified endpoint");
+        res.render("user_not_recognized");
+        return;
+    }
+    var buf1 = JSON.stringify(req.query);
+    console.log("Call /ajax (" + buf1 + ") by " + req.session.data['user'].oid);
+    request_1.default(process.env.API_URL || "", {
+        "method": "POST",
+        "headers": {
+            "Content-Type": "application/x-www-form-urlencoded"
+        },
+        "form": {
+            "itab": "ajax",
+            "user_id": req.session.data['user'].oid,
+            "client_secret": process.env.API_SECRET,
+            "query": buf1
+        }
+    }, function (error, response, body) {
+        if (error != null) {
+            console.log("Resp : " + response);
+            console.log("Body : " + body);
+            console.log("Error : " + error);
+        }
+        //the content returned by the internal server is inserted as raw into the pug placeholder
+        res.render("ajax", { message: body });
+    });
+});
 //this is done to retrieve the terminal type and theme color (light/dark)
 //so internal app can adapt for better readability
 app.get("/storeContext", function (req, res) {
-    var hostClientType = (req.query.hostClientType || -1);
-    var theme = (req.query.theme || -1);
+    var hostClientType = (req.query.hostClientType || "undef");
+    var theme = (req.query.theme || "undef");
     console.log("\n\nContext received");
     console.log(hostClientType);
     console.log(theme);
@@ -119,10 +165,10 @@ app.get("/storeToken", function (req, res) {
             console.log(claims);
         }
         if ((req.session.data === undefined) || (req.session.data['user'] === undefined))
-            req.session.data = { "ctl_sess": "true", "pageCount": 1 };
+            req.session.data = { "ctl_sess": "true", "pageCount": 1, "scope": "undefined" };
         req.session.data['user'] = claims;
         console.log('currentUser : ' + req.session.data['user'].oid);
-        res.render("tab", { title: 'Hey', message: 'Hello there ' + claims });
+        res.render("auth_in_progress", { title: 'Hey', message: 'Hello there ' + claims });
     });
 });
 // Let's start our nodejs server
