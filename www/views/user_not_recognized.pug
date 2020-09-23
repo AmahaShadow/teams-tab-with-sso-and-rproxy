@@ -1,7 +1,7 @@
 html
   head
     meta(charset='utf-8')
-    script(src='https://statics.teams.microsoft.com/sdk/v1.5.2/js/MicrosoftTeams.min.js')
+    script(src='https://statics.teams.microsoft.com/sdk/v1.7.0/js/MicrosoftTeams.min.js')
     link(rel='stylesheet', href='public/main.css')
     title Veuillez patienter, authentification en cours
   body
@@ -13,12 +13,7 @@ html
             },
             failureCallback: function (error) { console.log("Failure: " + error); },
         };
-        microsoftTeams.authentication.getAuthToken(authTokenRequest);  
-        var tid=setTimeout(LogMeIn(), 3000);
-        clearTimeout(tid);
+        microsoftTeams.authentication.getAuthToken(authTokenRequest); 
         microsoftTeams.getContext(function(Context) { fetch("/storeContext?hostClientType=" + Context.hostClientType + "&theme=" + Context.theme );  });  
-        function LogMeIn()  {
-            location.href="https://local-endpoint.com:6666/tab?iTab=0";
-        }
+        setTimeout(function(){window.location.reload(1);}, 3000);
     h1 Veuillez patienter, authentification en cours
-    
